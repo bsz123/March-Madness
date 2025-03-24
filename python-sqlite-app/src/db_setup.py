@@ -29,6 +29,43 @@ def create_tables(conn: sqlite3.Connection) -> None:
             FG_Attempted INTEGER
         )
     ''')
+    # AST	TO	Ratio
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS assist_turnover_ratio (
+            Rank INTEGER,
+            Team TEXT PRIMARY KEY,
+            Assist_Turnover_Ratio REAL,
+            Assists INTEGER,
+            Turnovers INTEGER
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS blocks (
+            Rank INTEGER,
+            Team TEXT PRIMARY KEY,
+            Blocks INTEGER
+        )
+    ''')
+    # ORebs	DRebs	REB	RPG
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rebounds (
+            Rank INTEGER,
+            Team TEXT PRIMARY KEY,
+            Offensive_Rebounds INTEGER,
+            Defensive_Rebounds INTEGER,
+            Total_Rebounds INTEGER,
+            Rebounds_Per_Game REAL
+        )
+    ''')
+    # ST	STPG
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS steals (
+            Rank INTEGER,
+            Team TEXT PRIMARY KEY,
+            Steals INTEGER
+            Steals_Per_Game REAL
+        )
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS teams (
             Team TEXT PRIMARY KEY,
@@ -54,19 +91,45 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
 
     assists_df = pd.read_csv("NCAA-data/assists.csv")
     fg_df = pd.read_csv("NCAA-data/fg-percent.csv")
+    assist_turnover_ratio_df = pd.read_csv("NCAA-data/assist-turnover-ratio.csv")
+    blocks_df = pd.read_csv("NCAA-data/blocks.csv")
+    steals_df = pd.read_csv("NCAA-data/steals.csv")
+    points_offense_df = pd.read_csv("NCAA-data/points-offense.csv")
+    points_defense_df = pd.read_csv("NCAA-data/points-defense.csv")
+    rebounds_df = pd.read_csv("NCAA-data/rebounds.csv")
+    free_throw_df = pd.read_csv("NCAA-data/free-throw-percent.csv")
 
 
     teams_df = assists_df[['Team', 'GM', 'W-L']].drop_duplicates()
+
     teams_df[['Wins', 'Losses']] = teams_df['W-L'].str.split('-', expand=True).astype(int)
     teams_df.drop(columns=['W-L'], inplace=True)
+
     teams_df['Win_Percentage'] = (teams_df['Wins'] / teams_df['GM']).round(2)
     teams_df.to_sql('teams', conn, if_exists='append', index=False, method=insert_or_ignore)
 
     assists_table_df = assists_df.drop(columns=['GM', 'W-L']).rename(columns={'APG': 'Assists_Per_Game', 'AST': 'Assists'})
     fg_table_df = fg_df.drop(columns=['GM', 'W-L']).rename(columns={'FG%': 'FG_Percent', 'FGM': 'FG_Made', 'FGA': 'FG_Attempted'})
+    # AST	TO	Ratio
+    assist_turnover_ratio_table_df = assist_turnover_ratio_df.drop(columns=['GM', 'W-L', 'TO', 'AST']).rename(columns={'Ratio': 'Assist_Turnover_Ratio'})
+    # BLKS	BKPG
+    blocks_table_df = blocks_df.drop(columns=['GM', 'W-L']).rename(columns={'BLKS': 'Blocks', 'BKPG': 'Blocks_Per_Game'})
+    # ST	STPG
+    steals_table_df = steals_df.drop(columns=['GM', 'W-L']).rename(columns={'ST': 'Steals', 'STPG': 'Steals_Per_Game'})
+    points_offense_table_df = points_offense_df.drop(columns=['GM', 'W-L'])
+    points_defense_table_df = points_defense_df.drop(columns=['GM', 'W-L'])
+    rebounds_table_df = rebounds_df.drop(columns=['GM'])
+    free_throw_table_df = free_throw_df.drop(columns=['GM', 'W-L'])
 
     assists_table_df.to_sql('assists', conn, if_exists='append', index=False)
     fg_table_df.to_sql('fg_percent', conn, if_exists='append', index=False)
+    assist_turnover_ratio_table_df.to_sql('assist_turnover_ratio', conn, if_exists='append', index=False)
+    blocks_table_df.to_sql('blocks', conn, if_exists='append', index=False)
+    steals_table_df.to_sql('steals', conn, if_exists='append', index=False)
+    points_offense_table_df.to_sql('points_offense', conn, if_exists='append', index=False)
+    points_defense_table_df.to_sql('points_defense', conn, if_exists='append', index=False)
+    rebounds_table_df.to_sql('rebounds', conn, if_exists='append', index=False)
+    free_throw_table_df.to_sql('free_throw_percent', conn, if_exists='append', index=False)
     # Repeat for other dataframes
 
 def main() -> None:
