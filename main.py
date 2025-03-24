@@ -15,11 +15,16 @@ def query_table(conn: sqlite3.Connection, table_name: str) -> pd.DataFrame:
 
 def displayChart(df: pd.DataFrame, x_axis: str, y_axis: str) -> None:
     st.title("NCAA Basketball Team Stats")
+    stats = df.columns
+    axis_options = [stat for stat in stats if stat not in ["Team", "GM", "WL"]]
+    x_axis = st.selectbox("Select X-axis", axis_options)
+    y_axis = st.selectbox("Select Y-axis", axis_options)
 
     fig = px.scatter(df, x=x_axis, y=y_axis, hover_name="Team",
                      title=f"Scatter Plot: {x_axis} vs {y_axis}")
 
     st.plotly_chart(fig)
+
 
 def main():
     conn = get_db_connection()
@@ -49,27 +54,10 @@ def main():
     print("x_axis_options", x_axis_options)
     print("y_axis_options", y_axis_options)
     
-    # Merge teams info with metric data on 'Team'
-    # (Assuming each metric table has a numeric metric column besides "Team")
-    x_merged = pd.merge(teams_df, x_df, on="Team", how="outer")
-    y_merged = pd.merge(teams_df, y_df, on="Team", how="outer")
-    
-    
-    print("x_metric_col", x_metric_col)
-    
-    # Combine the metric values into one dataframe, keyed by Team.
-    # We assume that both merged DataFrames have the same teams.
-    combined_df = pd.merge(x_merged[["Team", x_metric_col]], 
-                           y_merged[["Team", y_metric_col]], 
-                           on="Team",
-                           suffixes=("_x", "_y"))
-
-    # Adjust the x and y column names to match the merged DataFrame
-    new_x_metric_col = f"{x_metric_col}_x"
-    new_y_metric_col = f"{y_metric_col}_y"
+    combined_df = pd.merge(teams_df, x_df, on="Team")
 
     
-    displayChart(combined_df, new_x_metric_col, new_y_metric_col)
+    displayChart(combined_df, x_metric, x_metric)
     
     conn.close()
     st.write("Done")
