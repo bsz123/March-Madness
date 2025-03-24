@@ -29,24 +29,33 @@ def main():
     
     # Let the user select which tables supply the metric for each axis.
     metric_options = ["assists", "fg_percent"]
+    print("metric_options", metric_options)
     x_metric = st.selectbox("Select metric table for X-axis", metric_options)
     y_metric = st.selectbox("Select metric table for Y-axis", metric_options, index=1)
+
+    print("x_metric", x_metric)
+    print("y_metric", y_metric)
     
     # Query both metric tables.
     x_df = query_table(conn, x_metric)
     y_df = query_table(conn, y_metric)
+
+    print("x_df", x_df)
+    print("y_df", y_df)
+
+    x_axis_options = [col for col in x_df.columns if col not in ["Team", "GM", "WL"]]
+    y_axis_options = [col for col in y_df.columns if col not in ["Team", "GM", "WL"]]
+
+    print("x_axis_options", x_axis_options)
+    print("y_axis_options", y_axis_options)
     
     # Merge teams info with metric data on 'Team'
     # (Assuming each metric table has a numeric metric column besides "Team")
-    x_merged = pd.merge(teams_df, x_df, on="Team", how="inner")
-    y_merged = pd.merge(teams_df, y_df, on="Team", how="inner")
+    x_merged = pd.merge(teams_df, x_df, on="Team", how="outer")
+    y_merged = pd.merge(teams_df, y_df, on="Team", how="outer")
     
-    # Helper: get the numeric metric column name (ignoring 'Team', 'GM', 'WL')
-    def get_metric_column(df):
-        return next((col for col in df.columns if col not in ["Team", "GM", "WL"]), None)
     
-    x_metric_col = get_metric_column(x_merged)
-    y_metric_col = get_metric_column(y_merged)
+    print("x_metric_col", x_metric_col)
     
     # Combine the metric values into one dataframe, keyed by Team.
     # We assume that both merged DataFrames have the same teams.
