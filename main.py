@@ -50,7 +50,7 @@ def main():
     teams_df = query_table(conn, "teams")
     
     # Let the user select which tables supply the metric for each axis.
-    metric_options = ["assists", "fg_percent"]
+    metric_options = ["assists", "fg_percent", "points_offensive", "rebounds", "steals", "points_defensive", "blocks", "assist_turnover_ratio"]
     x_metric = st.selectbox("Select metric table for X-axis", metric_options)
     y_metric = st.selectbox("Select metric table for Y-axis", metric_options, index=1)
     
