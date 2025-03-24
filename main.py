@@ -13,12 +13,8 @@ def query_table(conn: sqlite3.Connection, table_name: str) -> pd.DataFrame:
     return pd.read_sql_query(query, conn)
 
 
-def displayChart(df: pd.DataFrame) -> None:
+def displayChart(df: pd.DataFrame, x_axis: str, y_axis: str) -> None:
     st.title("NCAA Basketball Team Stats")
-    stats = df.columns
-    axis_options = [stat for stat in stats]
-    x_axis = st.selectbox("Select X-axis", axis_options)
-    y_axis = st.selectbox("Select Y-axis", axis_options)
 
     fig = px.scatter(df, x=x_axis, y=y_axis, hover_name="Team",
                      title=f"Scatter Plot: {x_axis} vs {y_axis}")
@@ -27,16 +23,45 @@ def displayChart(df: pd.DataFrame) -> None:
 
 def main():
     conn = get_db_connection()
-
-    table_options = ["assists", "fg_percent"]
-    selected_table = st.selectbox("Select table", table_options)
-
-    df = query_table(conn, selected_table)
+    
+    # Get common team data
     teams_df = query_table(conn, "teams")
-    df_with_team_record = pd.merge(df, teams_df, on="Team")
+    
+    # Let the user select which tables supply the metric for each axis.
+    metric_options = ["assists", "fg_percent"]
+    x_metric = st.selectbox("Select metric table for X-axis", metric_options)
+    y_metric = st.selectbox("Select metric table for Y-axis", metric_options, index=1)
+    
+    # Query both metric tables.
+    x_df = query_table(conn, x_metric)
+    y_df = query_table(conn, y_metric)
+    
+    # Merge teams info with metric data on 'Team'
+    # (Assuming each metric table has a numeric metric column besides "Team")
+    x_merged = pd.merge(teams_df, x_df, on="Team", how="inner")
+    y_merged = pd.merge(teams_df, y_df, on="Team", how="inner")
+    
+    # Helper: get the numeric metric column name (ignoring 'Team', 'GM', 'WL')
+    def get_metric_column(df):
+        return next((col for col in df.columns if col not in ["Team", "GM", "WL"]), None)
+    
+    x_metric_col = get_metric_column(x_merged)
+    y_metric_col = get_metric_column(y_merged)
+    
+    # Combine the metric values into one dataframe, keyed by Team.
+    # We assume that both merged DataFrames have the same teams.
+    combined_df = pd.merge(x_merged[["Team", x_metric_col]], 
+                           y_merged[["Team", y_metric_col]], 
+                           on="Team",
+                           suffixes=("_x", "_y"))
 
-    displayChart(df_with_team_record)
+    # Adjust the x and y column names to match the merged DataFrame
+    new_x_metric_col = f"{x_metric_col}_x"
+    new_y_metric_col = f"{y_metric_col}_y"
 
+    
+    displayChart(combined_df, new_x_metric_col, new_y_metric_col)
+    
     conn.close()
     st.write("Done")
     print("Done")
