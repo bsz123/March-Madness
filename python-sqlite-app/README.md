@@ -3,6 +3,9 @@
 ## Overview
 This project is a Python application that utilizes SQLite to manage and analyze NCAA basketball data. It loads data from Excel files, merges the datasets, and provides visualizations using Streamlit.
 
+1. Setup the SQLite database and tables:
+   - The `db_setup.py` script creates the database and tables, and inserts data from the Excel files.
+
 ## Project Structure
 ```
 python-sqlite-app
