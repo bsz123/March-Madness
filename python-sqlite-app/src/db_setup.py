@@ -18,6 +18,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
     cursor.execute('DROP TABLE IF EXISTS points_defense')
     cursor.execute('DROP TABLE IF EXISTS rebounds')
     cursor.execute('DROP TABLE IF EXISTS free_throw_percent')
+    cursor.execute('DROP TABLE IF EXISTS team_colors')
     # Add more DROP TABLE statements as needed for other tables
     conn.commit()
 
@@ -85,6 +86,14 @@ def create_tables(conn: sqlite3.Connection) -> None:
             Win_Percentage REAL
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS team_colors (
+            Team TEXT PRIMARY KEY,
+            Hex_Code TEXT,
+            color_level number
+        )
+    ''')
+
     # Add more tables as needed for wins, points, rebounds, blocks, turnovers, etc.
     conn.commit()
 
@@ -109,6 +118,7 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
     rebounds_df = pd.read_csv("NCAA-data/rebounds.csv")
     free_throw_df = pd.read_csv("NCAA-data/free-throw-percent.csv")
 
+    team_colors_df = pd.read_csv("NCAA-data/color_teams.csv")
 
     teams_df = assists_df[['Team', 'GM', 'W-L']].drop_duplicates()
 
@@ -131,6 +141,8 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
     rebounds_table_df = rebounds_df.drop(columns=['GM']).rename(columns={'ORebs': 'Offensive_Rebounds', 'DRebs': 'Defensive_Rebounds', 'REB': 'Total_Rebounds', 'RPG': 'Rebounds_Per_Game'})
     free_throw_table_df = free_throw_df.drop(columns=['GM', 'W-L'])
 
+    team_colors_table_df = team_colors_df.drop(columns=['Color']).filter(items=['color_level'], axis=1)
+
     assists_table_df.to_sql('assists', conn, if_exists='append', index=False)
     fg_table_df.to_sql('fg_percent', conn, if_exists='append', index=False)
     assist_turnover_ratio_table_df.to_sql('assist_turnover_ratio', conn, if_exists='append', index=False, method=insert_or_ignore)
@@ -141,6 +153,8 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
     rebounds_table_df.to_sql('rebounds', conn, if_exists='append', index=False)
     free_throw_table_df.to_sql('free_throw_percent', conn, if_exists='append', index=False)
     # Repeat for other dataframes
+
+    team_colors_table_df.to_sql('team_colors', conn, if_exists='append', index=False)
 
 def main() -> None:
     db_name = "NCAA_data.db"
