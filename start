@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# Check if python is installed
+if ! command -v python3 &> /dev/null
+then
+    echo "Python3 could not be found. Please install python3."
+    exit
+fi
+
+# Check if pip is installed
+if ! command -v pip3 &> /dev/null
+then
+    echo "Pip3 could not be found. Please install pip3."
+    exit
+fi
+
+# Check if /venv/bin/activate exists
+if [ ! -f "venv/bin/activate" ]
+then
+    echo "Virtual environment not found. Creating virtual environment."
+    virtualenv venv
+fi
+
+
+# If a virtual environment does not exist, create one otherwise activate it
+if [ -d "venv" ]
+then
+    echo "Activating virtual environment."
+    source venv/bin/activate
+else
+    echo "Virtual environment not found. Creating and activating virtual environment."
+    virtualenv venv
+    source venv/bin/activate
+fi
+
+
+
+# Check Requirements
+if ! pip3 freeze | grep -q "requirements.txt"
+then
+    # Ask user if they want to install requirements
+    read -p "Do you want to install the requirements from requirements.txt? (y/n): " response
+    if [[ $response =~ ^[Yy]$ ]]; then
+        echo "Installing requirements."
+        pip3 install -r requirements.txt
+        echo "Finished installing requirements."
+    fi
+fi
+
+# Run the program
+streamlit run main.py
