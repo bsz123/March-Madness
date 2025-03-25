@@ -1,2 +1,3 @@
 venv
 *.db
+/NCAA_data.db
