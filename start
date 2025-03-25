@@ -47,5 +47,8 @@ then
     fi
 fi
 
+# Populate the database
+python ./python-sqlite-app/src/db_setup.py
+
 # Run the program
 streamlit run main.py
