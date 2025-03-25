@@ -69,7 +69,5 @@ def main():
     displayChart(combined_df, x_metric, x_metric, x_axis_options, y_axis_options)
     
     conn.close()
-    st.write("Done")
-    print("Done")
 
 main()
