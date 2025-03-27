@@ -89,8 +89,9 @@ def create_tables(conn: sqlite3.Connection) -> None:
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS team_colors (
             Team TEXT PRIMARY KEY,
-            Hex_Code TEXT,
-            color_level number
+            Priamry_Color_Hex_Code TEXT,
+            Secondary_Color_Hex_Code TEXT,
+            Tertiary_Color_Hex_Code TEXT
         )
     ''')
 
@@ -141,7 +142,26 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
     rebounds_table_df = rebounds_df.drop(columns=['GM']).rename(columns={'ORebs': 'Offensive_Rebounds', 'DRebs': 'Defensive_Rebounds', 'REB': 'Total_Rebounds', 'RPG': 'Rebounds_Per_Game'})
     free_throw_table_df = free_throw_df.drop(columns=['GM', 'W-L'])
 
-    team_colors_table_df = team_colors_df.drop(columns=['Color']).filter(items=['color_level'], axis=1)
+    # Normalize the "Team" field in both team_colors_df and blocks_df to ensure matching formats
+    team_colors_df['Team'] = team_colors_df['Team'].str.strip()
+    blocks_df['Team'] = blocks_df['Team'].str.replace(r"\s*\([^)]*\)", "", regex=True).str.strip()
+    # Optionally, standardize casing if necessary (e.g., use title case)
+    # team_colors_df['Team'] = team_colors_df['Team'].str.title()
+    # blocks_df['Team'] = blocks_df['Team'].str.title()
+
+    # Identify matching teams between blocks_df and team_colors_df
+    matching_teams = set(blocks_df['Team']).intersection(set(team_colors_df['Team']))
+    print("Matching teams between blocks.csv and team_colors.csv:", matching_teams)
+
+    primary_color_df = team_colors_df.loc[team_colors_df['color_level'] == 1, ['Team', 'Hex_Code']] \
+        .rename(columns={'Hex_Code': 'Priamry_Color_Hex_Code'})
+    secondary_color_df = team_colors_df.loc[team_colors_df['color_level'] == 2, ['Team', 'Hex_Code']] \
+        .rename(columns={'Hex_Code': 'Secondary_Color_Hex_Code'})
+    tertiary_color_df = team_colors_df.loc[team_colors_df['color_level'] == 3, ['Team', 'Hex_Code']] \
+        .rename(columns={'Hex_Code': 'Tertiary_Color_Hex_Code'})
+
+    team_colors_table_df = primary_color_df.merge(secondary_color_df, on='Team').merge(tertiary_color_df, on='Team')
+    print(team_colors_table_df)
 
     assists_table_df.to_sql('assists', conn, if_exists='append', index=False)
     fg_table_df.to_sql('fg_percent', conn, if_exists='append', index=False)
