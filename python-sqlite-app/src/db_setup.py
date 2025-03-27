@@ -129,6 +129,13 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
     teams_df['Win_Percentage'] = (teams_df['Wins'] / teams_df['GM']).round(2)
     teams_df.to_sql('teams', conn, if_exists='append', index=False, method=insert_or_ignore)
 
+    assists_table_df, fg_table_df, assist_turnover_ratio_table_df, blocks_table_df, steals_table_df, points_offense_table_df, points_defense_table_df, rebounds_table_df, free_throw_table_df = normalize_stats_dfs(assists_df, fg_df, assist_turnover_ratio_df, blocks_df, steals_df, points_offense_df, points_defense_df, rebounds_df, free_throw_df)
+
+    team_colors_table_df = extract_team_colors(team_colors_df)
+
+    save_stats_to_db(conn, insert_or_ignore, assists_table_df, fg_table_df, assist_turnover_ratio_table_df, blocks_table_df, steals_table_df, points_offense_table_df, points_defense_table_df, rebounds_table_df, free_throw_table_df, team_colors_table_df)
+
+def normalize_stats_dfs(assists_df, fg_df, assist_turnover_ratio_df, blocks_df, steals_df, points_offense_df, points_defense_df, rebounds_df, free_throw_df):
     assists_table_df = assists_df.drop(columns=['GM', 'W-L']).rename(columns={'APG': 'Assists_Per_Game', 'AST': 'Assists'})
     fg_table_df = fg_df.drop(columns=['GM', 'W-L']).rename(columns={'FG%': 'FG_Percent', 'FGM': 'FG_Made', 'FGA': 'FG_Attempted'})
     # AST	TO	Ratio
@@ -141,18 +148,9 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
     points_defense_table_df = points_defense_df.drop(columns=['GM', 'W-L'])
     rebounds_table_df = rebounds_df.drop(columns=['GM']).rename(columns={'ORebs': 'Offensive_Rebounds', 'DRebs': 'Defensive_Rebounds', 'REB': 'Total_Rebounds', 'RPG': 'Rebounds_Per_Game'})
     free_throw_table_df = free_throw_df.drop(columns=['GM', 'W-L'])
+    return assists_table_df,fg_table_df,assist_turnover_ratio_table_df,blocks_table_df,steals_table_df,points_offense_table_df,points_defense_table_df,rebounds_table_df,free_throw_table_df
 
-    # Normalize the "Team" field in both team_colors_df and blocks_df to ensure matching formats
-    team_colors_df['Team'] = team_colors_df['Team'].str.strip()
-    blocks_df['Team'] = blocks_df['Team'].str.replace(r"\s*\([^)]*\)", "", regex=True).str.strip()
-    # Optionally, standardize casing if necessary (e.g., use title case)
-    # team_colors_df['Team'] = team_colors_df['Team'].str.title()
-    # blocks_df['Team'] = blocks_df['Team'].str.title()
-
-    # Identify matching teams between blocks_df and team_colors_df
-    matching_teams = set(blocks_df['Team']).intersection(set(team_colors_df['Team']))
-    print("Matching teams between blocks.csv and team_colors.csv:", matching_teams)
-
+def extract_team_colors(team_colors_df):
     primary_color_df = team_colors_df.loc[team_colors_df['color_level'] == 1, ['Team', 'Hex_Code']] \
         .rename(columns={'Hex_Code': 'Priamry_Color_Hex_Code'})
     secondary_color_df = team_colors_df.loc[team_colors_df['color_level'] == 2, ['Team', 'Hex_Code']] \
@@ -161,8 +159,9 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
         .rename(columns={'Hex_Code': 'Tertiary_Color_Hex_Code'})
 
     team_colors_table_df = primary_color_df.merge(secondary_color_df, on='Team').merge(tertiary_color_df, on='Team')
-    print(team_colors_table_df)
+    return team_colors_table_df
 
+def save_stats_to_db(conn, insert_or_ignore, assists_table_df, fg_table_df, assist_turnover_ratio_table_df, blocks_table_df, steals_table_df, points_offense_table_df, points_defense_table_df, rebounds_table_df, free_throw_table_df, team_colors_table_df):
     assists_table_df.to_sql('assists', conn, if_exists='append', index=False)
     fg_table_df.to_sql('fg_percent', conn, if_exists='append', index=False)
     assist_turnover_ratio_table_df.to_sql('assist_turnover_ratio', conn, if_exists='append', index=False, method=insert_or_ignore)
@@ -172,8 +171,6 @@ def insert_data_from_csv(conn: sqlite3.Connection) -> None:
     points_defense_table_df.to_sql('points_defense', conn, if_exists='append', index=False)
     rebounds_table_df.to_sql('rebounds', conn, if_exists='append', index=False)
     free_throw_table_df.to_sql('free_throw_percent', conn, if_exists='append', index=False)
-    # Repeat for other dataframes
-
     team_colors_table_df.to_sql('team_colors', conn, if_exists='append', index=False)
 
 def main() -> None:
