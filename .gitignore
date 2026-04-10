@@ -1,3 +1,4 @@
 venv
 *.db
 /NCAA_data.db
+.DS_Store
